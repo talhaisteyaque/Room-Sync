@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<!-- HTML = the STRUCTURE (what is on the page). CSS = the LOOK. JS = the BEHAVIOUR. All three are in this one file. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"> <!-- makes the site fit phones -->
+<title>RoomSync – Campus Room Availability System</title>
+<!-- Loads the Manrope font from Google. Needs internet. -->
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+
+<style>
+/* ========== CSS PART 1: VARIABLES ==========
+   :root variables are "named colours" we reuse everywhere. Change one here = changes the whole site. */
+:root{
+  --bg:#101114;        /* page background (solid charcoal) */
+  --panel:#1a1c21;     /* cards / blocks */
+  --line:#2c2f37;      /* thin borders */
+  --text:#f2f2f0;
+  --muted:#9a9ca5;
+  --accent:#f5a524;    /* amber, the main brand colour */
+  --ok:#3ecf8e; --bad:#ff5d5d;
+}
+/* ========== PART 2: RESET & BASE ========== */
+*{box-sizing:border-box;margin:0;padding:0}   /* removes default browser spacing */
+html{scroll-behavior:smooth}
+body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+section{padding:70px 6%}
+.hidden{display:none !important}
+h2{font-size:clamp(28px,4vw,44px);font-weight:800;text-transform:uppercase;letter-spacing:-1px;margin-bottom:8px}
+h2 span{color:var(--accent)}
+.sub{color:var(--muted);margin-bottom:30px;max-width:600px}
+
+/* ========== PART 3: NAVBAR ========== */
+nav{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:center;padding:16px 6%;flex-wrap:wrap;gap:10px}
+.logo{font-weight:800;font-size:22px;letter-spacing:1px}
+.logo b{color:var(--accent)}
+nav ul{display:flex;gap:6px;list-style:none;flex-wrap:wrap}
+nav button{background:none;border:none;color:var(--text);font:600 14px 'Manrope';padding:10px 16px;cursor:pointer;
+    text-transform:uppercase;letter-spacing:1px;transition:.2s}
+nav button:hover,nav button.active{background:var(--accent);color:#000}
+
+/* ========== PART 4: HERO ========== */
+.hero{min-height:75vh;display:flex;flex-direction:column;justify-content:center;
+  background:linear-gradient(120deg,#101114 55%,#2a1d06)}
+.hero h1{font-size:clamp(42px,8vw,96px);line-height:1;font-weight:800;text-transform:uppercase;letter-spacing:-3px}
+.hero h1 span{color:var(--accent)}
+.hero p{color:var(--muted);max-width:520px;margin:22px 0 30px;font-size:18px}
+.stats{display:flex;gap:0;margin-top:50px;flex-wrap:wrap}
+.stat{border:1px solid var(--line);padding:22px 34px;background:var(--panel);margin:0 -1px -1px 0}
+.stat b{display:block;font-size:38px;color:var(--accent)}
+.stat small{color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+
+/* ========== PART 5: BUTTONS, INPUTS, CARDS ========== */
+.btn{background:var(--accent);color:#000;border:none;padding:14px 28px;font:800 14px 'Manrope';
+  text-transform:uppercase;letter-spacing:1px;cursor:pointer;transition:.2s}
+.btn:hover{transform:translateY(-3px);box-shadow:0 8px 0 #000a}
+.btn.ghost{background:none;color:var(--text);border:1px solid var(--line)}
+.btn.sm{padding:8px 14px;font-size:12px}
+.btn.red{background:var(--bad)}
+input,select,textarea{background:var(--bg);color:var(--text);border:1px solid var(--line);padding:12px;
+  font:600 14px 'Manrope';width:100%}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent)}
+label{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);display:block;margin-bottom:5px}
+.form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;align-items:end;margin-bottom:18px}
+.panel{background:var(--panel);border:1px solid var(--line);padding:24px;margin-bottom:24px}
+
+/* Grid: automatically fits as many cards per row as the screen allows */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:20px}
+.card{background:var(--panel);border:1px solid var(--line);padding:24px;transition:.25s;position:relative}
+.card:hover{border-color:var(--accent);transform:translateY(-6px)}
+.card h3{font-size:20px;margin:10px 0 4px}
+.tag{display:inline-block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;
+  padding:4px 10px;border:1px solid var(--accent);color:var(--accent)}
+.badge{font-size:11px;font-weight:800;padding:4px 10px;text-transform:uppercase}
+.b-ok{background:var(--ok);color:#000}.b-bad{background:var(--bad);color:#000}
+.b-wait{background:var(--accent);color:#000}.b-no{background:#555;color:#fff}
+.meta{color:var(--muted);font-size:14px;margin:10px 0 18px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.chip{background:none;border:1px solid var(--line);color:var(--text);padding:8px 18px;cursor:pointer;font:600 13px 'Manrope'}
+.chip.active{background:var(--accent);color:#000;border-color:var(--accent)}
+
+/* ========== PART 6: TIMETABLE & TABLES ========== */
+.tt{display:grid;grid-template-columns:90px 1fr;border:1px solid var(--line);margin-top:16px}
+.tt div{padding:14px;border-bottom:1px solid var(--line)}
+.tt .time{color:var(--muted);font-weight:700;border-right:1px solid var(--line)}
+.slot-free{color:var(--ok)}.slot-busy{background:#3b1f1f;color:#ff9b9b;font-weight:600}
+.slot-wait{background:#3a2c0b;color:var(--accent);font-weight:600}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:640px}
+th,td{text-align:left;padding:14px;border-bottom:1px solid var(--line);font-size:14px}
+th{color:var(--muted);text-transform:uppercase;font-size:12px;letter-spacing:1px}
+
+/* ========== PART 7: MODAL (popup) & TOAST (message) ========== */
+.overlay{position:fixed;inset:0;background:#000b;display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
+.modal{background:var(--panel);border:1px solid var(--accent);padding:30px;width:100%;max-width:480px;max-height:90vh;overflow:auto}
+.modal .form-row{grid-template-columns:1fr 1fr}
+.modal h3{font-size:24px;margin-bottom:16px}
+#toast{position:fixed;bottom:24px;right:24px;background:var(--accent);color:#000;font-weight:800;padding:16px 24px;
+  z-index:99;transform:translateY(120px);transition:.3s}
+#toast.show{transform:none}
+footer{border-top:1px solid var(--line);padding:30px 6%;color:var(--muted);text-align:center}
+
+/* ===== NEW: light theme, pagination, favourites, analytics bars ===== */
+:root.light{--bg:#f4f3ef;--panel:#fff;--line:#d9d7d0;--text:#16171a;--muted:#6b6d75}
+.light .hero{background:linear-gradient(120deg,var(--bg) 55%,#f5deb0)}
+.light .slot-busy{background:#fde0e0;color:#a33}.light .slot-wait{background:#fdf0cf;color:#8a5a00}
+.pager{display:flex;gap:8px;justify-content:center;margin-top:26px;flex-wrap:wrap}
+.fav{position:absolute;bottom:20px;right:18px;background:none;border:none;font-size:24px;cursor:pointer;color:var(--accent)}
+.toolbar{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px;margin-bottom:20px}
+@media(max-width:700px){.toolbar{grid-template-columns:1fr}}
+.bars .row{display:flex;align-items:center;gap:12px;margin:10px 0;font-size:14px;text-transform:capitalize}
+.bars .row span{width:110px;color:var(--muted)}
+.bars .bar{background:var(--accent);height:18px;transition:width .6s;min-width:3px}
+
+/* ===== UI UPGRADE ===== */
+/* Italic look: Manrope has no italic file, so the browser slants it (font-style:italic). Only headings/buttons/labels, so body text stays readable. */
+h1,h2,h3,.logo,nav button,.btn,.tag,.chip,.badge,.stat b,.stat small,summary,label,th{font-style:italic}
+/* Marquee ticker bar */
+.ticker{background:var(--accent);color:#000;font-weight:800;font-style:italic;font-size:13px;text-transform:uppercase;letter-spacing:1px;padding:9px 0}
+.ticker marquee{display:block}
+/* Scroll progress bar + back-to-top button */
+#prog{position:fixed;top:0;left:0;height:4px;width:0;background:var(--accent);z-index:100;transition:width .1s}
+#top{position:fixed;bottom:24px;left:24px;z-index:60;width:48px;height:48px;border:none;background:var(--accent);color:#000;font-size:22px;font-weight:800;cursor:pointer;transition:.2s}
+#top:hover{transform:translateY(-4px)}
+/* Hero extras: glowing ring, live pill */
+.hero{position:relative;overflow:hidden}
+.hero::after{content:'';position:absolute;right:-140px;top:8%;width:460px;height:460px;border:70px solid var(--accent);border-radius:50%;opacity:.1;animation:spin 20s linear infinite;border-top-color:transparent}
+@keyframes spin{to{transform:rotate(360deg)}}
+.pill{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--panel);padding:8px 16px;font-size:13px;font-weight:600;margin-bottom:22px;width:fit-content}
+.pill i{width:10px;height:10px;border-radius:50%;background:var(--ok);animation:pulse 1.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 #3ecf8e99}100%{box-shadow:0 0 0 12px #3ecf8e00}}
+/* Cards: rise-in animation + accent line that grows on hover */
+.card{animation:rise .5s both}
+@keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+.card::before{content:'';position:absolute;top:0;left:0;height:3px;width:0;background:var(--accent);transition:.35s}
+.card:hover::before{width:100%}
+.card:hover{box-shadow:0 14px 30px #0006}
+/* How-it-works steps + scroll reveal */
+.step b{font-size:60px;line-height:1;color:var(--accent);display:block;font-style:italic}
+.reveal{opacity:0;transform:translateY(34px);transition:.7s}.reveal.in{opacity:1;transform:none}
+/* FAQ accordion */
+details{background:var(--panel);border:1px solid var(--line);padding:18px 22px;margin-bottom:10px;max-width:800px}
+details[open]{border-color:var(--accent)}
+summary{cursor:pointer;font-weight:800}
+details p{color:var(--muted);margin-top:10px}
+</style>
+</head>
+
+<body>
+<div id="prog"></div>
+<!-- MARQUEE: the old-school <marquee> tag scrolls text sideways. Hover pauses it (onmouseover/onmouseout). JS fills in live text. -->
+<div class="ticker"><marquee id="tick" behavior="scroll" direction="left" scrollamount="6" onmouseover="this.stop()" onmouseout="this.start()">Welcome to RoomSync</marquee></div>
+<!-- ========== HTML PART 1: NAVBAR ==========
+ Each button calls show('name') (a JS function below) to switch which section is visible. -->
+<nav>
+  <div class="logo">ROOM<b>SYNC</b></div>
+  <ul>
+    <li><button class="active" data-v="home">Home</button></li>
+    <li><button data-v="rooms">Rooms</button></li>
+    <li><button data-v="timetable">Timetable</button></li>
+    <li><button data-v="bookings">My Bookings</button></li>
+    <li><button data-v="admin" id="adminNav">🔒 Admin</button></li>
+    <li><button id="themeBtn" title="Dark / light">◐</button></li>
+  </ul>
+</nav>
+
+<!-- ========== HTML PART 2: HOME (hero + availability search) ========== -->
+<div id="home" class="view">
+  <section class="hero">
+    <div class="pill"><i></i><span id="clock">LIVE</span></div>
+    <h1>Find a room.<br><span>Skip the queue.</span></h1>
+    <p>See every classroom, lab and seminar hall on campus in one place. Search, book and track requests in seconds.</p>
+    <div><button class="btn" onclick="document.getElementById('search').scrollIntoView()">Check availability</button></div>
+    <div class="stats">
+      <div class="stat"><b id="stRooms">0</b><small>Rooms</small></div>
+      <div class="stat"><b id="stFree">0</b><small>Free now</small></div>
+      <div class="stat"><b id="stPend">0</b><small>Pending</small></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>How it <span>works</span></h2>
+    <p class="sub">Three quick steps replace the repeated manual inquiries.</p>
+    <div class="grid">
+      <div class="card step reveal"><b>01</b><h3>Search</h3><div class="meta">Pick a date and time. Only rooms that are really free are shown.</div></div>
+      <div class="card step reveal"><b>02</b><h3>Request</h3><div class="meta">Send a booking request. Clashes are blocked automatically.</div></div>
+      <div class="card step reveal"><b>03</b><h3>Get approved</h3><div class="meta">The admin approves it and it appears in the timetable.</div></div>
+    </div>
+  </section>
+
+  <section id="search">
+    <h2>Availability <span>search</span></h2>
+    <p class="sub">Pick a date, time and room type. We show only rooms that are completely free.</p>
+    <div class="panel">
+      <div class="form-row">
+        <div><label>Date</label><input type="date" id="sDate"></div>
+        <div><label>From</label><select id="sFrom"></select></div>
+        <div><label>To</label><select id="sTo"></select></div>
+        <div><label>Type</label><select id="sType"><option>All</option><option>Classroom</option><option>Lab</option><option>Seminar Room</option></select></div>
+        <div><label>Min. seats</label><input type="number" id="sCap" value="0" min="0"></div>
+        <button class="btn" id="sBtn">Search</button>
+      </div>
+    </div>
+    <div class="grid" id="sResults"></div>
+  </section>
+
+  <section>
+    <h2>Common <span>questions</span></h2><p class="sub">Click a question to open it.</p>
+    <details class="reveal"><summary>How do I book a room?</summary><p>Search for a free room or open the Rooms page, click "Book this room", fill the form and send the request.</p></details>
+    <details class="reveal"><summary>Why was my booking blocked?</summary><p>Someone already has that room at an overlapping time. Try the Timetable page to see free hours.</p></details>
+    <details class="reveal"><summary>Who approves requests?</summary><p>Only the admin, after logging in, can approve or reject pending requests.</p></details>
+    <details class="reveal"><summary>What is the longest booking?</summary><p>Four hours per request, between 8 AM and 7 PM.</p></details>
+  </section>
+</div>
+
+<!-- ========== HTML PART 3: ROOM CATALOGUE ========== -->
+<div id="rooms" class="view hidden"><section>
+  <h2>Room <span>catalogue</span></h2>
+  <p class="sub">Every bookable space on campus. Filter by type or search by name, building or equipment.</p>
+  <div class="chips" id="chips"></div>
+  <div class="toolbar">
+    <input id="roomSearch" placeholder="Search e.g. projector, Lab, Block A...">
+    <select id="bldSel"></select>
+    <select id="sortSel"><option value="name">Sort: Name</option><option value="cap">Sort: Seats (high → low)</option><option value="capasc">Sort: Seats (low → high)</option></select>
+  </div>
+  <p class="sub" id="count"></p>
+  <div class="grid" id="roomGrid"></div>
+  <div class="pager" id="pager"></div>
+</section></div>
+
+<!-- ========== HTML PART 4: TIMETABLE ========== -->
+<div id="timetable" class="view hidden"><section>
+  <h2>Room <span>timetable</span></h2>
+  <p class="sub">Hour-by-hour view of one room. Red = booked, amber = awaiting approval, green = free.</p>
+  <div class="form-row" style="max-width:600px">
+    <div><label>Room</label><select id="ttRoom"></select></div>
+    <div><label>Date</label><input type="date" id="ttDate"></div>
+  </div>
+  <div class="tt" id="ttGrid"></div>
+</section></div>
+
+<!-- ========== HTML PART 5: BOOKING HISTORY ========== -->
+<div id="bookings" class="view hidden"><section>
+  <h2>Booking <span>history</span></h2>
+  <p class="sub">All requests and their approval status. You can cancel pending or approved bookings.</p>
+  <div class="panel scroll"><table>
+    <thead><tr><th>Room</th><th>Date</th><th>Time</th><th>Booked by</th><th>Purpose</th><th>Status</th><th></th></tr></thead>
+    <tbody id="bkBody"></tbody>
+  </table></div>
+</section></div>
+
+<!-- ========== HTML PART 6: ADMIN PANEL ========== -->
+<div id="admin" class="view hidden"><section>
+  <h2>Admin <span>management</span></h2>
+  <p class="sub">Approve or reject requests, add new rooms, take rooms out of service.</p>
+  <div style="display:flex;gap:10px;margin-bottom:24px"><button class="btn sm" id="csvBtn">⬇ Export bookings (CSV)</button><button class="btn sm ghost" id="logoutBtn">Logout</button></div>
+  <h3 style="margin-bottom:12px">Analytics</h3>
+  <div class="panel bars" id="bars"></div>
+  <h3 style="margin-bottom:12px">Pending approvals</h3>
+  <div class="panel scroll"><table>
+    <thead><tr><th>Room</th><th>Date</th><th>Time</th><th>By</th><th>Purpose</th><th>Action</th></tr></thead>
+    <tbody id="pendBody"></tbody>
+  </table></div>
+
+  <h3 style="margin:30px 0 12px">Add a new room</h3>
+  <div class="panel"><div class="form-row">
+    <div><label>Name</label><input id="aName" placeholder="Room 305"></div>
+    <div><label>Building</label><input id="aBld" placeholder="Block C"></div>
+    <div><label>Type</label><select id="aType"><option>Classroom</option><option>Lab</option><option>Seminar Room</option></select></div>
+    <div><label>Seats</label><input type="number" id="aCap" value="30" min="1"></div>
+    <div><label>Equipment</label><input id="aEq" placeholder="Projector, AC"></div>
+    <button class="btn" id="aBtn">Add room</button>
+  </div></div>
+
+  <h3 style="margin:30px 0 12px">Manage rooms</h3>
+  <input id="mngSearch" placeholder="Search rooms to manage..." style="margin-bottom:12px">
+  <div class="panel scroll"><table>
+    <thead><tr><th>Room</th><th>Type</th><th>Seats</th><th>Status</th><th>Action</th></tr></thead>
+    <tbody id="mngBody"></tbody>
+  </table></div>
+  <button class="btn ghost sm" id="resetBtn">Reset all demo data</button>
+</section></div>
+
+<!-- ========== HTML PART 7: BOOKING POPUP (hidden until opened) ========== -->
+<div class="overlay hidden" id="overlay">
+  <div class="modal">
+    <h3 id="mTitle">Book room</h3>
+    <div class="form-row"><div style="grid-column:1/3"><label>Your name</label><input id="mName" placeholder="Full name"></div></div>
+    <div class="form-row">
+      <div style="grid-column:1/3"><label>Date</label><input type="date" id="mDate"></div>
+      <div><label>From</label><select id="mFrom"></select></div>
+      <div><label>To</label><select id="mTo"></select></div>
+      <div style="grid-column:1/3"><label>Purpose</label><textarea id="mPurpose" rows="2" placeholder="e.g. Extra DBMS class"></textarea></div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn" id="mSubmit">Send request</button>
+      <button class="btn ghost" id="mCancel">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN LOGIN POPUP -->
+<div class="overlay hidden" id="loginBox"><div class="modal"><h3>🔒 Admin login</h3>
+  <div class="form-row" style="grid-template-columns:1fr"><div><label>Username</label><input id="lUser"></div>
+  <div><label>Password</label><input type="password" id="lPass"></div></div>
+  <p class="sub" style="font-size:13px;margin-bottom:16px">Demo login → admin / admin123</p>
+  <div style="display:flex;gap:10px"><button class="btn" id="lBtn">Login</button><button class="btn ghost" id="lCancel">Cancel</button></div>
+</div></div>
+<button id="top" class="hidden" title="Back to top" onclick="window.scrollTo(0,0)">↑</button>
+<div id="toast"></div>
+<footer>RoomSync © 2026 · Campus Room Availability System · Built with HTML, CSS &amp; JavaScript</footer>
+
+<script>
+/* ========== JS PART 1: DATA ==========
+   An "array" is a list. Each room / booking is an "object" ({name: value}).
+   Data is stored in the browser (localStorage) so it survives a page refresh. */
+const today = new Date().toISOString().slice(0,10);   // today's date like 2026-11-09
+/* 120 rooms are made by a LOOP instead of typing each one. i goes 0..119; "%" (remainder) rotates the type. */
+const blds=['Block A','Block B','Block C','Block D','Library','Main Bldg'];
+const kinds=[
+  {t:'Classroom',p:'Room',eq:['Projector, AC','Smart board','Projector, Whiteboard','AC, Smart board'],cap:[30,40,60,80]},
+  {t:'Lab',p:'Lab',eq:['30 PCs, Projector','Instruments, Fume hood','Network kit, PCs','Electronics bench'],cap:[20,25,30,36]},
+  {t:'Seminar Room',p:'Hall',eq:['Stage, Mic, Projector','TV screen, Whiteboard','Video conferencing, Mic'],cap:[20,50,120]}];
+const defaultRooms=[];
+for(let i=0;i<120;i++){
+  const k=kinds[i%3], n=Math.floor(i/3);
+  defaultRooms.push({id:i+1,name:k.p+' '+(101+i),bld:blds[n%6],type:k.t,cap:k.cap[n%k.cap.length],eq:k.eq[n%k.eq.length],active:true});
+}
+const defaultBookings = [
+  {id:1,room:1,date:today,from:9,to:11,by:'Prof. Sharma',purpose:'Maths lecture',status:'approved'},
+  {id:2,room:2,date:today,from:10,to:13,by:'Dr. Kaur',purpose:'Java practical',status:'approved'},
+  {id:3,room:3,date:today,from:14,to:16,by:'Student Council',purpose:'Orientation',status:'pending'},
+  {id:4,room:4,date:today,from:8,to:10,by:'Prof. Mehta',purpose:'Physics theory',status:'approved'},
+  {id:5,room:5,date:today,from:11,to:13,by:'Dr. Singh',purpose:'Electronics practical',status:'approved'},
+  {id:6,room:7,date:today,from:15,to:17,by:'Placement Cell',purpose:'Mock interviews',status:'pending'}
+];
+let rooms, bookings, filter='All', pickedRoom=null, page=1, onlyFav=false, favs=[], isAdmin=false, fails=0, lockUntil=0;
+const PER=12; // rooms per page
+
+function load(){ try{ rooms=JSON.parse(localStorage.getItem('rs_rooms2'))||defaultRooms;
+                      bookings=JSON.parse(localStorage.getItem('rs_bk2'))||defaultBookings;}
+                 catch(e){ rooms=defaultRooms; bookings=defaultBookings; } }
+function save(){ try{ localStorage.setItem('rs_rooms2',JSON.stringify(rooms));
+                      localStorage.setItem('rs_bk2',JSON.stringify(bookings)); }catch(e){} }
+
+/* ========== JS PART 2: HELPER FUNCTIONS ==========
+   $ is a shortcut for "find the element with this id" (DOM = the page's elements as JS objects). */
+const $ = id => document.getElementById(id);
+const roomOf = id => rooms.find(r => r.id === id);
+const hr = h => (h%12||12) + (h<12?' AM':' PM');     // 14 -> "2 PM"
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); // safety for typed text
+function toast(msg){ $('toast').textContent=msg; $('toast').classList.add('show');
+                     setTimeout(()=>$('toast').classList.remove('show'),2800); }
+
+/* CONFLICT PREVENTION: two bookings clash if same room + same date and their times overlap.
+   Overlap rule: newStart < oldEnd AND newEnd > oldStart. Rejected/cancelled bookings don't block. */
+function hasConflict(roomId,date,from,to){
+  return bookings.some(b => b.room===roomId && b.date===date &&
+         (b.status==='approved'||b.status==='pending') && from<b.to && to>b.from);
+}
+
+/* ========== JS PART 3: NAVIGATION ==========
+   Hides every ".view" then shows the chosen one. */
+function show(name){
+  /* ADMIN PROTECTION: if not logged in, show the login popup and stop. */
+  if(name==='admin' && !isAdmin){ $('loginBox').classList.remove('hidden'); $('lUser').focus(); return; }
+  $('adminNav').textContent=(isAdmin?'🔓':'🔒')+' Admin';
+  document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+  $(name).classList.remove('hidden');
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.v===name));
+  window.scrollTo(0,0); render();
+}
+document.querySelectorAll('nav button[data-v]').forEach(b => b.onclick = () => show(b.dataset.v));
+
+/* ========== JS PART 4: ROOM CARDS, FILTER, SORT, PAGINATION, FAVOURITES ========== */
+function nextFree(id){   // first free hour today from now onwards
+  for(let h=Math.max(8,new Date().getHours()); h<19; h++) if(!hasConflict(id,today,h,h+1)) return hr(h);
+  return 'Tomorrow';
+}
+function cardHTML(r, date, from, to){
+  const now=new Date().getHours();
+  const free = r.active && (date ? !hasConflict(r.id,date,from,to) : !hasConflict(r.id,today,now,now+1));
+  const badge = !r.active ? '<span class="badge b-no">Out of service</span>'
+              : free ? '<span class="badge b-ok">Available</span>' : '<span class="badge b-bad">Busy</span>';
+  return `<div class="card"><span class="tag">${r.type}</span> ${badge}
+    <h3>${esc(r.name)}</h3><div class="meta">📍 ${esc(r.bld)} · 👥 ${r.cap} seats<br>🔧 ${esc(r.eq)}${date?'':'<br>⏭ Next free today: '+nextFree(r.id)}</div>
+    <button class="btn sm" ${r.active?'':'disabled style="opacity:.4"'} onclick="openModal(${r.id},'${date||''}',${from||9},${to||10})">Book this room</button>
+    <button class="fav" title="Favourite" onclick="toggleFav(${r.id})">${favs.includes(r.id)?'♥':'♡'}</button></div>`;
+}
+function toggleFav(id){
+  favs = favs.includes(id) ? favs.filter(x=>x!==id) : [...favs,id];
+  try{localStorage.setItem('rs_fav',JSON.stringify(favs));}catch(e){}
+  renderRooms(); if(!$('home').classList.contains('hidden')) doSearch();
+}
+function renderRooms(){
+  const q=$('roomSearch').value.toLowerCase(), b=$('bldSel').value, so=$('sortSel').value;
+  // FILTER: .filter() keeps only rooms where every condition is true
+  const list = rooms.filter(r => (filter==='All'||r.type===filter) && (b==='All'||r.bld===b) &&
+               (!onlyFav||favs.includes(r.id)) && (r.name+r.bld+r.eq+r.type).toLowerCase().includes(q));
+  // SORT
+  if(so==='cap') list.sort((a,c)=>c.cap-a.cap); else if(so==='capasc') list.sort((a,c)=>a.cap-c.cap);
+  else list.sort((a,c)=>a.name.localeCompare(c.name,undefined,{numeric:true}));
+  // PAGINATION: show only 12 rooms at a time using .slice(start,end)
+  const pages=Math.max(1,Math.ceil(list.length/PER)); if(page>pages) page=1;
+  $('roomGrid').innerHTML = list.slice((page-1)*PER,page*PER).map(r=>cardHTML(r)).join('') || '<p class="sub">No rooms match.</p>';
+  $('count').textContent = `Showing ${list.length} of ${rooms.length} rooms`;
+  $('chips').innerHTML = ['All','Classroom','Lab','Seminar Room'].map(t =>
+    `<button class="chip ${t===filter?'active':''}" onclick="filter='${t}';page=1;renderRooms()">${t}</button>`).join('')
+    + `<button class="chip ${onlyFav?'active':''}" onclick="onlyFav=!onlyFav;page=1;renderRooms()">♥ Favourites</button>`;
+  $('pager').innerHTML = pages>1 ? Array.from({length:pages},(_,i)=>
+    `<button class="chip ${i+1===page?'active':''}" onclick="page=${i+1};renderRooms()">${i+1}</button>`).join('') : '';
+}
+
+/* ========== JS PART 5: AVAILABILITY SEARCH ========== */
+function doSearch(){
+  const d=$('sDate').value, f=+$('sFrom').value, t=+$('sTo').value, ty=$('sType').value, cap=+$('sCap').value;
+  if(!d) return toast('Please choose a date');
+  if(t<=f) return toast('End time must be after start time');
+  const list = rooms.filter(r => r.active && (ty==='All'||r.type===ty) && r.cap>=cap && !hasConflict(r.id,d,f,t));
+  $('sResults').innerHTML = list.map(r=>cardHTML(r,d,f,t)).join('') || '<p class="sub">😕 No free rooms for that slot. Try another time.</p>';
+}
+
+/* ========== JS PART 6: TIMETABLE ========== */
+function renderTimetable(){
+  $('ttRoom').innerHTML = rooms.map(r=>`<option value="${r.id}">${esc(r.name)}</option>`).join('');
+  if(pickedRoom) $('ttRoom').value = pickedRoom;
+  pickedRoom = +$('ttRoom').value;
+  const d = $('ttDate').value; let html='';
+  for(let h=8; h<19; h++){
+    const b = bookings.find(b => b.room===pickedRoom && b.date===d && b.status!=='rejected' && b.status!=='cancelled' && h>=b.from && h<b.to);
+    html += `<div class="time">${hr(h)}</div>` + (b
+      ? `<div class="${b.status==='approved'?'slot-busy':'slot-wait'}">${esc(b.purpose)} – ${esc(b.by)} (${b.status})</div>`
+      : `<div class="slot-free">Free</div>`);
+  }
+  $('ttGrid').innerHTML = html;
+}
+$('ttRoom').onchange = () => { pickedRoom=+$('ttRoom').value; renderTimetable(); };
+$('ttDate').onchange = renderTimetable;
+
+/* ========== JS PART 7: BOOKING POPUP + SUBMIT ========== */
+function openModal(id,date,from,to){
+  pickedRoom=id; $('mTitle').textContent='Book '+roomOf(id).name;
+  $('mDate').value=date||today; $('mFrom').value=from; $('mTo').value=to;
+  $('overlay').classList.remove('hidden');
+}
+$('mCancel').onclick = () => $('overlay').classList.add('hidden');
+$('mSubmit').onclick = () => {
+  const name=$('mName').value.trim(), purpose=$('mPurpose').value.trim();
+  const date=$('mDate').value, from=+$('mFrom').value, to=+$('mTo').value;
+  if(!name||!purpose||!date) return toast('Please fill all fields');          // validation
+  if(date<today) return toast("You can't book a past date");
+  if(to<=from) return toast('End time must be after start time');
+  if(to-from>4) return toast('Maximum booking length is 4 hours');   // business rule
+  if(hasConflict(pickedRoom,date,from,to)) return toast('⚠ Conflict! Room already booked at that time');
+  bookings.push({id:Date.now(),room:pickedRoom,date,from,to,by:name,purpose,status:'pending'});
+  save(); $('overlay').classList.add('hidden'); $('mName').value=$('mPurpose').value='';
+  toast('Request sent – waiting for admin approval'); render();
+};
+
+/* ========== JS PART 8: BOOKING HISTORY ========== */
+function renderBookings(){
+  const rows = [...bookings].reverse().map(b => {
+    const cls={approved:'b-ok',pending:'b-wait',rejected:'b-bad',cancelled:'b-no'}[b.status];
+    const can = (b.status==='pending'||b.status==='approved')
+      ? `<button class="btn sm red" onclick="setStatus(${b.id},'cancelled')">Cancel</button>` : '';
+    return `<tr><td>${esc(roomOf(b.room)?roomOf(b.room).name:'Deleted room')}</td><td>${b.date}</td><td>${hr(b.from)}–${hr(b.to)}</td>
+      <td>${esc(b.by)}</td><td>${esc(b.purpose)}</td><td><span class="badge ${cls}">${b.status}</span></td><td>${can}</td></tr>`;
+  });
+  $('bkBody').innerHTML = rows.join('') || '<tr><td colspan="7">No bookings yet.</td></tr>';
+}
+function setStatus(id,st){ if((st==='approved'||st==='rejected') && !isAdmin) return toast('Admin only'); bookings.find(b=>b.id===id).status=st; save(); toast('Booking '+st); render(); }
+
+/* ========== JS PART 9: ADMIN ========== */
+function renderAdmin(){
+  renderBars();
+  const p = bookings.filter(b=>b.status==='pending').map(b =>
+    `<tr><td>${esc(roomOf(b.room)?roomOf(b.room).name:'?')}</td><td>${b.date}</td><td>${hr(b.from)}–${hr(b.to)}</td><td>${esc(b.by)}</td><td>${esc(b.purpose)}</td>
+     <td><button class="btn sm" onclick="setStatus(${b.id},'approved')">Approve</button>
+         <button class="btn sm red" onclick="setStatus(${b.id},'rejected')">Reject</button></td></tr>`);
+  $('pendBody').innerHTML = p.join('') || '<tr><td colspan="6">🎉 No pending requests.</td></tr>';
+  $('mngBody').innerHTML = rooms.filter(r=>(r.name+r.bld+r.type).toLowerCase().includes($('mngSearch').value.toLowerCase())).slice(0,15).map(r =>
+    `<tr><td>${esc(r.name)}</td><td>${r.type}</td><td>${r.cap}</td>
+     <td><span class="badge ${r.active?'b-ok':'b-no'}">${r.active?'Active':'Out of service'}</span></td>
+     <td><button class="btn sm ghost" onclick="toggleRoom(${r.id})">${r.active?'Disable':'Enable'}</button>
+         <button class="btn sm red" onclick="delRoom(${r.id})">Delete</button></td></tr>`).join('')+'<tr><td colspan="5" class="sub">Showing up to 15 rooms – use the search box to find others.</td></tr>';
+}
+function toggleRoom(id){ if(!isAdmin) return; const r=roomOf(id); r.active=!r.active; save(); render(); }
+function delRoom(id){ if(!isAdmin) return; if(confirm('Delete this room?')){ rooms=rooms.filter(r=>r.id!==id); save(); render(); } }
+$('aBtn').onclick = () => {
+  if(!isAdmin) return; const name=$('aName').value.trim(); if(!name) return toast('Enter a room name');
+  rooms.push({id:Date.now(),name,bld:$('aBld').value||'Campus',type:$('aType').value,cap:+$('aCap').value,eq:$('aEq').value||'Basic',active:true});
+  save(); $('aName').value=''; toast('Room added'); render();
+};
+$('resetBtn').onclick = () => { localStorage.clear(); load(); toast('Demo data restored'); render(); };
+
+/* ========== JS PART 9B: LOGIN, ANALYTICS, CSV, THEME ==========
+   Passwords are never stored as plain text: we store only a HASH (a one-way scrambled number). */
+const ADMIN_USER='admin', ADMIN_HASH=407908580;
+function hash(t){ let h=5381; for(const c of t) h=((h<<5)+h+c.charCodeAt(0))>>>0; return h; }
+function login(){
+  if(Date.now()<lockUntil) return toast('Too many attempts – wait 30 seconds');
+  if($('lUser').value.trim()===ADMIN_USER && hash($('lPass').value)===ADMIN_HASH){
+    isAdmin=true; try{sessionStorage.setItem('rs_admin','1');}catch(e){}   // sessionStorage = cleared when tab closes
+    fails=0; $('lPass').value=''; $('loginBox').classList.add('hidden'); toast('Welcome, admin'); show('admin');
+  } else {
+    fails++;
+    if(fails>=3){ lockUntil=Date.now()+30000; fails=0; return toast('Locked for 30 seconds'); }  // brute-force protection
+    toast('Wrong credentials ('+fails+'/3)');
+  }
+}
+$('lBtn').onclick=login;
+$('lPass').onkeydown=e=>{ if(e.key==='Enter') login(); };
+$('lCancel').onclick=()=>$('loginBox').classList.add('hidden');
+$('logoutBtn').onclick=()=>{ isAdmin=false; try{sessionStorage.removeItem('rs_admin');}catch(e){} show('home'); toast('Logged out'); };
+
+function renderBars(){   // simple bar chart made with plain divs whose width = value
+  const types=['Classroom','Lab','Seminar Room'], sts=['approved','pending','rejected','cancelled'];
+  const data=[...types.map(t=>[t,bookings.filter(b=>roomOf(b.room)&&roomOf(b.room).type===t&&b.status!=='cancelled').length]),
+              ...sts.map(x=>[x,bookings.filter(b=>b.status===x).length])];
+  const max=Math.max(1,...data.map(d=>d[1]));
+  $('bars').innerHTML=data.map(([n,v])=>`<div class="row"><span>${n}</span><div class="bar" style="width:${v/max*60}%"></div><b>${v}</b></div>`).join('');
+}
+$('csvBtn').onclick=()=>{   // builds a CSV text file in memory and downloads it
+  if(!isAdmin) return;
+  const q=c=>'"'+String(c).replace(/"/g,'""')+'"';
+  const rows=[['Room','Date','From','To','By','Purpose','Status'],
+    ...bookings.map(b=>[roomOf(b.room)?roomOf(b.room).name:'Deleted',b.date,hr(b.from),hr(b.to),b.by,b.purpose,b.status])];
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([rows.map(r=>r.map(q).join(',')).join('\n')],{type:'text/csv'}));
+  a.download='bookings.csv'; a.click(); toast('CSV downloaded');
+};
+$('themeBtn').onclick=()=>{   // toggles the "light" class on <html>; CSS variables do the rest
+  const l=document.documentElement.classList.toggle('light');
+  try{localStorage.setItem('rs_theme',l?'l':'d');}catch(e){}
+};
+$('mngSearch').oninput=renderAdmin;
+
+/* ========== JS PART 9C: UI EFFECTS ==========
+   countUp: numbers slide up to their value. updateTicker: writes live info into the marquee. */
+function countUp(el,to){
+  clearInterval(el.t); const step=Math.max(1,Math.ceil(Math.abs(to-(+el.textContent||0))/20));
+  el.t=setInterval(()=>{ let n=+el.textContent||0; n = n<to ? Math.min(to,n+step) : Math.max(to,n-step);
+    el.textContent=n; if(n===to) clearInterval(el.t); },35);
+}
+let lastTick='';
+function updateTicker(){
+  const now=new Date().getHours(), freeRoom=rooms.find(r=>r.active&&!hasConflict(r.id,today,now,now+1));
+  const msg='📢 Welcome to RoomSync &nbsp;•&nbsp; '+rooms.filter(r=>r.active).length+' rooms on campus &nbsp;•&nbsp; '
+    +bookings.filter(b=>b.status==='pending').length+' requests awaiting approval &nbsp;•&nbsp; '
+    +(freeRoom?'Free right now: '+esc(freeRoom.name)+' &nbsp;•&nbsp; ':'')+'Bookings open 8 AM – 7 PM &nbsp;•&nbsp; Maximum 4 hours per booking';
+  if(msg!==lastTick){ $('tick').innerHTML=msg; lastTick=msg; }   // only change when text differs so scrolling doesn't restart
+}
+function tickClock(){ $('clock').textContent='LIVE · '+new Date().toLocaleString('en-IN',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+setInterval(tickClock,1000); tickClock();
+window.addEventListener('scroll',()=>{      // progress bar width = how far you scrolled (%)
+  const h=document.documentElement;
+  $('prog').style.width=(h.scrollTop/Math.max(1,h.scrollHeight-h.clientHeight)*100)+'%';
+  $('top').classList.toggle('hidden',h.scrollTop<400);
+});
+// IntersectionObserver: adds class "in" when an element scrolls into view -> CSS fades it in
+const io=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('in'); }),{threshold:.15});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ========== JS PART 10: START-UP ========== */
+function render(){
+  renderRooms(); renderTimetable(); renderBookings(); renderAdmin();
+  countUp($('stRooms'),rooms.length);
+  countUp($('stFree'), rooms.filter(r=>r.active && !hasConflict(r.id,today,new Date().getHours(),new Date().getHours()+1)).length);
+  countUp($('stPend'),bookings.filter(b=>b.status==='pending').length);
+  updateTicker();
+}
+// fill the time dropdowns (8 AM – 7 PM) in all forms
+['sFrom','sTo','mFrom','mTo'].forEach(id => {
+  $(id).innerHTML = Array.from({length:12},(_,i)=>`<option value="${i+8}">${hr(i+8)}</option>`).join('');
+});
+$('sTo').value=10; $('mTo').value=10;
+$('sDate').value=$('ttDate').value=today;
+$('sBtn').onclick = doSearch;
+['roomSearch','bldSel','sortSel'].forEach(id=>$(id).oninput=()=>{page=1;renderRooms();});
+$('bldSel').innerHTML='<option>All</option>'+blds.map(b=>`<option>${b}</option>`).join('');
+try{ isAdmin=sessionStorage.getItem('rs_admin')==='1'; favs=JSON.parse(localStorage.getItem('rs_fav'))||[];
+     if(localStorage.getItem('rs_theme')==='l') document.documentElement.classList.add('light'); }catch(e){}
+$('adminNav').textContent=(isAdmin?'🔓':'🔒')+' Admin';
+load(); render(); doSearch();
+</script>
+</body>
+</html>
